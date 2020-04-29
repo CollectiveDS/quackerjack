@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -22,6 +23,10 @@ func LogMsg(msg string) {
 
 type webError struct {
 	Error string
+}
+
+type authResp struct {
+	Token string
 }
 
 type report struct {
@@ -94,18 +99,41 @@ func parseURL(url string) (string, []string, string) {
 func webHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path[1:] == "api" {
 		postURL := r.URL.Query().Get("vid")
+		userToken := r.URL.Query().Get("token")
 
 		var jsonBytes []byte
 
-		if postURL != "" {
-			jsonBytes = runReport(postURL)
+		if VerifyS71Token(userToken) {
+			if postURL != "" {
+				jsonBytes = runReport(postURL)
+			} else {
+				jsonBytes, _ = json.Marshal(webError{Error: "Missing post URL."})
+			}
 		} else {
-			jsonBytes, _ = json.Marshal(webError{Error: "Missing post URL."})
+			jsonBytes, _ = json.Marshal(webError{Error: "Invalid Studio71 token."})
 		}
 
-		// w.Header().Set("Access-Control-Allow-Origin", "*") /// USEFUL FOR DEV ONLY
+		//w.Header().Set("Access-Control-Allow-Origin", "*") /// USEFUL FOR DEV ONLY
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(jsonBytes)
+	} else if r.URL.Path[1:] == "oauth" {
+		var jsonBytes []byte
+
+		code := r.URL.Query().Get("code")
+		token, err := GetS71Token(code)
+		if err != nil {
+			LogMsg(fmt.Sprintf("Error: %v", err))
+			jsonBytes, _ = json.Marshal(webError{Error: "Token accquisition failed."})
+		} else {
+			jsonBytes, _ = json.Marshal(authResp{Token: token})
+		}
+
+		//w.Header().Set("Access-Control-Allow-Origin", "*") /// USEFUL FOR DEV ONLY
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonBytes)
+	} else if r.URL.Path[1:] == "login" {
+		url := fmt.Sprintf("https://api.studio71.io/auth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s", GetConfigString("studio71_client_id"), url.QueryEscape(GetConfigString("studio71_redirect_uri")), r.URL.Query().Get("state"))
+		http.Redirect(w, r, url, 301)
 	} else {
 		data, err := Asset("static/gui/index.html")
 		if err != nil {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Quackerjack v3</title>
+  <title>Studio71 - Analyzer</title>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
   <style type="text/css">
     main { margin-top: 5rem; }
-    #intro { display: block; }
+    #login { display: block; text-align: center; margin-top: 33%; }
+    #intro { display: none; }
     #processing { display: none; }
     #report { display: none; }
     #report .header { margin: 0px 10px 0px 10px; border-bottom: 1px solid #999; }
     .outline { border: 1px solid blue; }
     .bignum { padding: 5px; border-radius: 5px; text-align: center; margin: 15px 0px 15px 0px; }
-    .bignum span.num { font-size: 24px; display: block; }
+    .bignum span.num { font-size: 40px; display: block; }
     .bignum span.desc { font-size: 10px; text-transform: uppercase; }
     .tabs { font-size: 10px; text-align: center }
     .tabs li { padding: 5px; cursor: pointer; }
@@ -26,7 +27,7 @@
 <body>
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-  <a class="navbar-brand" href="#">Quackerjack</a>
+  <a class="navbar-brand" href="#">Studio71 Analyzer</a>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -35,12 +36,6 @@
     <ul class="navbar-nav mr-auto">
       <li class="nav-item active">
         <a class="nav-link" href="/">New Report <span class="sr-only">(current)</span></a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="https://github.com/mikeflynn/quackerjack/releases"><i class="fa fa-github-square" aria-hidden="true"></i> Releases</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="https://github.com/mikeflynn/quackerjack"><i class="fa fa-github-square" aria-hidden="true"></i> Source</a>
       </li>
       <!--
       <li class="nav-item dropdown">
@@ -63,6 +58,10 @@
 </nav>
 
 <main role="main" class="container">
+
+  <div id="login">
+    <a id="loginButton" class="btn btn-primary btn-lg" role="button" href="#">Sign in with Studio71</a>
+  </div>
 
   <div id="intro">
     <form method="get" action="">
@@ -166,14 +165,16 @@
 
   <script type="text/javascript">
   var colors = {
-    red: "rgb(255, 99, 132)",
+    red: "rgb(238, 67, 109)",
     orange: "rgb(255, 159, 64)",
-    yellow: "rgb(255, 205, 86)",
-    green: "rgb(75, 192, 192)",
-    blue: "rgb(54, 162, 235)",
+    yellow: "rgb(255, 207, 58)",
+    green: "rgb(80, 239, 129)",
+    blue: "rgb(48, 167, 255)",
     purple: "rgb(153, 102, 255)",
     grey: "rgb(201, 203, 207)"
   }
+
+  var apiHost = "";
 
   function getURLParameter(name) {
     return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null
@@ -195,9 +196,85 @@
     return new Promise(resolve => setTimeout(resolve, milliseconds))
   }
 
+  function setToken(token, ttl) {
+    const key = 'token';
+    const now = new Date();
+    const item = {
+      token: token,
+      expires: now.getTime() + ttl
+    };
+
+    window.localStorage.setItem(key, JSON.stringify(item));
+  }
+
+  function removeToken() {
+    const key = 'token';
+    localStorage.removeItem(key);
+  }
+
+  function getToken() {
+    const key = 'token';
+    const itemStr = localStorage.getItem(key)
+
+    if(!itemStr) {
+      return false;
+    }
+
+    const now = new Date();
+    const item = JSON.parse(itemStr);
+
+    if(now.getTime() > item.expires) {
+      localStorage.removeItem(key);
+      return false;
+    }
+
+    return item.token;
+  }
+
   window.onload = function() {
+    let savedToken = getToken();
+    if(savedToken && savedToken != "") {
+      jQuery('#login').hide();
+      jQuery('#intro').show();
+      jQuery('#processing').hide();
+      jQuery('#report').hide();
+    } else {
+      jQuery('#loginButton').attr('href', apiHost+"/login");
+      jQuery('#login').show();
+      jQuery('#intro').hide();
+      jQuery('#processing').hide();
+      jQuery('#report').hide();
+    }
+
+    var code = getURLParameter('code');
     var vid = getURLParameter('vid');
-    if(vid) {
+    var state = getURLParameter('state');
+
+    if(state) {
+      vid = state;
+    }
+
+    if(code) {
+      jQuery.getJSON(apiHost+"/oauth?code="+code)
+            .done(function(resp) {
+              if(resp.Token) {
+                setToken(resp.Token, 3600000);
+                location.href = "/";
+              } else if (resp.Error) {
+                console.log(resp.Error);
+              } else {
+                console.log("Invalid auth from Studio71.");
+              }
+            })
+            .fail(function() {
+              console.log("Invalid auth from Studio71.");
+            });
+    } else if(vid) {
+      let savedToken = getToken();
+      if(!savedToken || savedToken == "") {
+        location.href=apiHost+"/login?state="+vid;
+      }
+
       jQuery('#intro').hide();
       jQuery('#processing').show();
 
@@ -217,7 +294,7 @@
                                       .attr('aria-valuenow', 20);
       }
 
-      jQuery.getJSON("/api?vid="+vid)
+      jQuery.getJSON(apiHost+"/api?token="+savedToken+"&vid="+vid)
             .done(function(resp) {
               if(!resp.Error) {
                 let steps = ["processing-comment-count", "processing-comment-download","processing-emoji","processing-sentiment"]
@@ -247,6 +324,9 @@
                                                 .removeClass('progress-bar-striped')
                                                 .addClass('bg-danger')
                                                 .text(resp.Error);
+                } else if (resp.Error == "Invalid Studio71 token.") {
+                  removeToken();
+                  location.href = "/";
                 }
               }
             })
