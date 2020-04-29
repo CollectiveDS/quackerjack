@@ -259,7 +259,7 @@
             .done(function(resp) {
               if(resp.Token) {
                 setToken(resp.Token, 3600000);
-                if(state && state != "" & state != "null") {
+                if(state && state != "" && state != "null") {
                   location.href = "/?state="+encodeURIComponent(state);
                 } else {
                   location.href = "/";
