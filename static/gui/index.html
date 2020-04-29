@@ -250,7 +250,7 @@
     var vid = getURLParameter('vid');
     var state = getURLParameter('state');
 
-    if(state) {
+    if(state && state != "") {
       vid = state;
     }
 
@@ -259,7 +259,7 @@
             .done(function(resp) {
               if(resp.Token) {
                 setToken(resp.Token, 3600000);
-                location.href = "/";
+                location.href = "/?state="+encodeURIComponent(state);
               } else if (resp.Error) {
                 console.log(resp.Error);
               } else {
@@ -272,7 +272,7 @@
     } else if(vid) {
       let savedToken = getToken();
       if(!savedToken || savedToken == "") {
-        location.href=apiHost+"/login?state="+vid;
+        location.href=apiHost+"/login?state="+encodeURIComponent(vid);
       }
 
       jQuery('#intro').hide();
