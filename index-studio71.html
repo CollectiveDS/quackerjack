@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Studio71 - Analyzer</title>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style type="text/css">
+    main { margin-top: 5rem; }
+    #login { display: block; text-align: center; margin-top: 33%; }
+    #intro { display: none; }
+    #processing { display: none; }
+    #report { display: none; }
+    #report .header { margin: 0px 10px 0px 10px; border-bottom: 1px solid #999; }
+    .outline { border: 1px solid blue; }
+    .bignum { padding: 5px; border-radius: 5px; text-align: center; margin: 15px 0px 15px 0px; }
+    .bignum span.num { font-size: 40px; display: block; }
+    .bignum span.desc { font-size: 10px; text-transform: uppercase; }
+    .tabs { font-size: 10px; text-align: center }
+    .tabs li { padding: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+  <a class="navbar-brand" href="#">Studio71 Analyzer</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/">New Report <span class="sr-only">(current)</span></a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<main role="main" class="container">
+  <div id="login">
+    <a id="loginButton" class="btn btn-primary btn-lg" role="button" href="#">Sign in with Studio71</a>
+  </div>
+
+  <div id="intro">
+    <form method="get" action="">
+      <div class="form-group">
+        <label for="InputURL">Enter a YouTube Video URL</label>
+        <input type="url" class="form-control" id="InputURL" aria-describedby="urlHelp" name="vid">
+        <small id="urlHelp" class="form-text text-muted">Example: https://www.youtube.com/watch?v=oHg5SJYRHA0</small>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fa fa-comments-o" aria-hidden="true"></i> Scan the Comments</button>
+    </form>
+  </div>
+
+  <div id="processing">
+    <div class="loading">
+      <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col-md-6">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item" id="processing-check-url"><i class="fa fa-square-o" aria-hidden="true"></i> Checking for valid URL</i></li>
+            <li class="list-group-item" id="processing-comment-count"><i class="fa fa-square-o" aria-hidden="true"></i> Checking for comments</li>
+            <li class="list-group-item" id="processing-comment-download"><i class="fa fa-square-o" aria-hidden="true"></i> Downloading comments</li>
+            <li class="list-group-item" id="processing-emoji"><i class="fa fa-square-o" aria-hidden="true"></i> Analyzing emoji</li>
+            <li class="list-group-item" id="processing-sentiment"><i class="fa fa-square-o" aria-hidden="true"></i> Analyzing sentiment</li>
+          </ul>
+
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="3" aria-valuemin="0" aria-valuemax="100" style="width: 3%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="report">
+    <div class="row header">
+      <div class="col-md-10">
+        <h2 class="video_title">Some Video Title</h2>
+        <p class="channel_title">A Channel</p>
+      </div>
+      <div class="col-md-2">
+
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-8">
+        <div class="row">
+          <div class="col-md-6">
+            <div style="height: 300px;">
+              <canvas id="chartTotalSentiment" width="400" height="300"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6 stats">
+            <div class="row">
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="bignum">
+                  <span class="num" id="total_comments">--</span>
+                  <span class="desc">Total Comments</span>
+                </div>
+              </div>
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="bignum">
+                  <span class="num" id="positive_engagements">--</span>
+                  <span class="desc">Positive</span>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="bignum">
+                  <span class="num" id="comments_per_day">--</span>
+                  <span class="desc">Comments Per Day</span>
+                </div>
+              </div>
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="bignum">
+                  <span class="num" id="negative_engagements">--</span>
+                  <span class="desc">Negative</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12" style="height: 200px;">
+            <canvas id="chartDailySentiment" width="100%" height="200" style="height: 200px;"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="height: 520px;">
+          <canvas id="chartTopList" width="100%" height="520" style="height: 520px;"></canvas>
+        </div>
+        <input id="chartFilter" class="form-control form-control-sm" type="text" placeholder="Filter">
+        <br>
+        <ul class="list-group list-group-horizontal tabs">
+          <li class="list-group-item flex-fill list-group-item-primary" data-tab="topwords">Top Words</li>
+          <li class="list-group-item flex-fill" data-tab="emoji">Top Emoji</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+
+  <script type="text/javascript">
+  var colors = {
+    red: "rgb(238, 67, 109)",
+    orange: "rgb(255, 159, 64)",
+    yellow: "rgb(255, 207, 58)",
+    green: "rgb(80, 239, 129)",
+    blue: "rgb(48, 167, 255)",
+    purple: "rgb(153, 102, 255)",
+    grey: "rgb(201, 203, 207)"
+  }
+
+  var apiHost = "";
+
+  function getURLParameter(name) {
+    return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null
+  }
+
+  function dv(data, defaultData) {
+    return (data ? data : defaultData);
+  }
+
+  function truncate(str, max) {
+    if(str.length > max) {
+      str = str.substring(0, max) + "...";
+    }
+
+    return str;
+  }
+
+  const sleep = (milliseconds) => {
+    return new Promise(resolve => setTimeout(resolve, milliseconds))
+  }
+
+  /* Added for Studio71 Auth */
+
+  function setToken(token, ttl) {
+    const key = 'token';
+    const now = new Date();
+    const item = {
+      token: token,
+      expires: now.getTime() + ttl
+    };
+
+    window.localStorage.setItem(key, JSON.stringify(item));
+  }
+
+  function removeToken() {
+    const key = 'token';
+    localStorage.removeItem(key);
+  }
+
+  function getToken() {
+    const key = 'token';
+    const itemStr = localStorage.getItem(key)
+
+    if(!itemStr) {
+      return false;
+    }
+
+    const now = new Date();
+    const item = JSON.parse(itemStr);
+
+    if(now.getTime() > item.expires) {
+      localStorage.removeItem(key);
+      return false;
+    }
+
+    return item.token;
+  }
+
+  window.onload = function() {
+    let savedToken = getToken();
+    if(savedToken && savedToken != "") {
+      jQuery('#login').hide();
+      jQuery('#intro').show();
+      jQuery('#processing').hide();
+      jQuery('#report').hide();
+    } else {
+      jQuery('#loginButton').attr('href', apiHost+"/login");
+      jQuery('#login').show();
+      jQuery('#intro').hide();
+      jQuery('#processing').hide();
+      jQuery('#report').hide();
+    }
+
+    var code = getURLParameter('code');
+
+    var vid = getURLParameter('vid');
+    var state = getURLParameter('state');
+
+    if(state && state != "") {
+      vid = state;
+    }
+
+    if(code) {
+      jQuery.getJSON(apiHost+"/oauth?code="+code)
+            .done(function(resp) {
+              if(resp.Token) {
+                setToken(resp.Token, 3600000);
+                if(state && state != "" && state != "null") {
+                  location.href = "/?state="+encodeURIComponent(state);
+                } else {
+                  location.href = "/";
+                }
+              } else if (resp.Error) {
+                console.log(resp.Error);
+              } else {
+                console.log("Invalid auth from Studio71.");
+              }
+            })
+            .fail(function() {
+              console.log("Invalid auth from Studio71.");
+            });
+    } else if(vid) {
+      let savedToken = getToken();
+      if(!savedToken || savedToken == "") {
+        location.href=apiHost+"/login?state="+encodeURIComponent(vid);
+        return false;
+      }
+      jQuery('#intro').hide();
+      jQuery('#processing').show();
+
+      let icon = jQuery('#processing-check-url i.fa');
+      const ytRegex = /https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_\-]{6,}/;
+      if(!vid.match(ytRegex)) {
+        icon.removeClass('fa-square-o');
+        icon.addClass('fa-times');
+        $('#processing .progress-bar').css('width', '20%')
+                                      .attr('aria-valuenow', 20)
+                                      .removeClass('progress-bar-striped')
+                                      .addClass('bg-danger');
+        return false;
+      } else {
+        icon.removeClass('fa-square-o');
+        icon.addClass('fa-check-square-o');
+        $('#processing .progress-bar').css('width', '20%')
+                                      .attr('aria-valuenow', 20);
+      }
+
+      jQuery.getJSON(apiHost+"/api?token="+savedToken+"&vid="+vid)
+            .done(function(resp) {
+              if(!resp.Error) {
+                let steps = ["processing-comment-count", "processing-comment-download","processing-emoji","processing-sentiment"]
+                for(let x = 0; x < steps.length; x++) {
+                  let icon = jQuery('#'+steps[x]+' i.fa');
+                  icon.removeClass('fa-square-o');
+                  icon.addClass('fa-check-square-o');
+                  $('#processing .progress-bar').css('width', (x+2)*20+'%')
+                                                .attr('aria-valuenow', (x+2)*20);
+                }
+
+                $('#processing .progress-bar').css('width', '100%')
+                                              .attr('aria-valuenow', 100)
+                                              .removeClass('progress-bar-striped')
+                                              .addClass('bg-success');
+
+                sleep(1000).then(() => {
+                  drawReport(resp);
+                });
+              } else {
+                if(resp.Error == 'No comments found for this post.') {
+                  let icon = jQuery('#processing-comment-count i.fa');
+                  icon.removeClass('fa-square-o');
+                  icon.addClass('fa-times');
+                  $('#processing .progress-bar').css('width', '100%')
+                                                .attr('aria-valuenow', 100)
+                                                .removeClass('progress-bar-striped')
+                                                .addClass('bg-danger')
+                                                .text(resp.Error);
+                } else if (resp.Error == "Invalid Studio71 token.") {
+                  removeToken();
+                  location.href = "/";
+                }
+              }
+            })
+            .fail(function() {
+              let checkIcon = jQuery('#processing-comment-count i.fa');
+              checkIcon.removeClass('fa-square-o');
+              checkIcon.addClass('fa-times');
+
+              let dlIcon = jQuery('#processing-comment-download i.fa');
+              dlIcon.removeClass('fa-square-o');
+              dlIcon.addClass('fa-times');
+
+              $('#processing .progress-bar').css('width', '100%')
+                                            .attr('aria-valuenow', 100)
+                                            .removeClass('progress-bar-striped')
+                                            .addClass('bg-danger')
+                                            .text('Unable to download comments.');
+            });
+    }
+
+    function drawReport(data) {
+      let chartTotalSentimentID = document.getElementById('chartTotalSentiment').getContext('2d');
+      let chartDailySentimentID = document.getElementById('chartDailySentiment').getContext('2d');
+      let chartTopListID = document.getElementById('chartTopList').getContext('2d');
+
+      // Metadata
+      jQuery('.header h2.video_title').text(data.Metadata.Title);
+      jQuery('.header p.channel_title').html('<a target="new" href="https://www.youtube.com/channel/'+data.Metadata.ChannelID+'">'+data.Metadata.ChannelTitle+'</a>');
+      jQuery('#total_comments').text(data.TotalComments.toLocaleString());
+      jQuery('#positive_engagements').text(Math.round(data.Sentiment.positive / data.Metadata.TotalComments * 100)+"%");
+      jQuery('#negative_engagements').text(Math.round(data.Sentiment.negative / data.Metadata.TotalComments * 100)+"%");
+      jQuery('#comments_per_day').text(Math.round(data.CommentAvgPerDay));
+
+      // Top Lists
+      let topWords = Object.keys(data.Keywords)
+                           .sort(function(a, b) {
+                              if (data.Keywords[a] > data.Keywords[b]) {
+                                return -1;
+                              } else if (data.Keywords[b] > data.Keywords[a]) {
+                                return 1;
+                              }
+
+                              return 0;
+                           });
+
+      let topEmoji = Object.keys(data.EmojiCount)
+                           .sort(function(a, b) {
+                              if (data.EmojiCount[a] > data.EmojiCount[b]) {
+                                return -1;
+                              } else if (data.EmojiCount[b] > data.EmojiCount[a]) {
+                                return 1;
+                              }
+
+                              return 0;
+                           });
+
+      let chartTopList = new Chart(chartTopListID, {
+        type: 'horizontalBar',
+        data: {
+          labels: topWords.slice(0, 25),
+          datasets: [{
+              backgroundColor: Chart.helpers.color(window.colors.red).alpha(0.5).rgbString(),
+              borderColor: window.colors.red,
+              borderWidth: 1,
+              data: topWords.slice(0, 25).map(x => data.Keywords[x])
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          title: { text: "Top Words", display: true },
+          legend: {
+            display: false
+          },
+          scales: {
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true
+              },
+              gridLines: {
+                display: true
+              }
+            }],
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: false,
+                fontSize: 10
+              },
+              gridLines: {
+                display: false
+              }
+            }]
+          }
+        }
+      });
+
+      jQuery('#chartFilter').change(function() {
+        let tab = jQuery('.list-group-item-primary').attr('data-tab');
+        let query = jQuery('#chartFilter').val();
+
+        values = data.Keywords;
+        labels = topWords;
+        if (tab == "emoji") {
+          labels = topEmoji;
+          values = data.EmojiCount
+        }
+
+        let filtered = labels
+        if (query != "") {
+          filtered = labels.filter(word => word.includes(query) );
+        }
+
+        chartTopList.data.labels = filtered.slice(0, 25);
+        chartTopList.data.datasets[0].data = filtered.slice(0, 25).map(x => values[x]);
+        chartTopList.update();
+      });
+
+      jQuery('ul.tabs li').click(function() {
+        jQuery('ul.tabs li').each(function(idx) {
+          jQuery(this).removeClass('list-group-item-primary');
+        });
+
+        jQuery(this).addClass('list-group-item-primary');
+        let tab = jQuery(this).attr('data-tab');
+
+        if (tab == 'topwords') {
+          chartTopList.data.labels = topWords.slice(0, 25);
+          chartTopList.data.datasets[0].data = topWords.slice(0, 25).map(x => data.Keywords[x]);
+          chartTopList.options.title.text = 'Top Words';
+          chartTopList.update();
+        } else if (tab == 'emoji') {
+          chartTopList.data.labels = topEmoji.slice(0, 25);
+          chartTopList.data.datasets[0].data = topEmoji.slice(0, 25).map(x => data.EmojiCount[x]);
+          chartTopList.options.title.text = 'Top Emoji';
+          chartTopList.update();
+        } else {
+          return false;
+        }
+      });
+
+      // Daily Sentiment Chart
+      let dailySentimentKeys = Object.keys(data.DailySentiment).sort().slice(0, 30);;
+
+      let chartDailySentiment = new Chart(chartDailySentimentID, {
+        type: 'line',
+        data: {
+          labels: dailySentimentKeys,
+          datasets: [{
+            label: "Positive Comments",
+            backgroundColor: window.colors.green,
+            borderColor: window.colors.green,
+            data: dailySentimentKeys.map(x => data.DailySentiment[x].positive),
+            fill: false
+          }, {
+            label: "Negative Comments",
+            backgroundColor: window.colors.red,
+            borderColor: window.colors.red,
+            data: dailySentimentKeys.map(x => data.DailySentiment[x].negative),
+            fill: false
+          }]
+        },
+        options: {
+          legend: {
+            display: false
+          },
+          title: { text: "First 30 Days Daily Sentiment", display: true },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: false
+              },
+              gridLines: {
+                display: false
+              }
+            }],
+            yAxes: [{
+              type: 'logarithmic',
+              display: false,
+              scaleLabel: {
+                display: false,
+                labelString: 'Comments'
+              }
+            }]
+          }
+        }
+      });
+
+      // Total Sentiment Chart
+      let chartTotalSentiment = new Chart(chartTotalSentimentID, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [data.Sentiment.positive, data.Sentiment.negative, data.Sentiment.unknown],
+            backgroundColor: [
+              window.colors.green,
+              window.colors.red,
+              window.colors.grey
+            ]
+          }],
+          labels: ["Positive","Negative","Nuetral"]},
+        options: {
+          responsive: true,
+          circumference: 1*Math.PI,
+          rotation: -Math.PI,
+          title: { text: "Total Sentiment", display: true },
+          animation: {
+            animateScale: true,
+            animateRotate: true
+          }
+        }
+      });
+
+      jQuery('#processing').hide();
+      jQuery('#report').show();
+    }
+  }
+  </script>
+</body>
+</html>
