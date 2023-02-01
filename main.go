@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -120,10 +121,24 @@ func webHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(jsonBytes)
 	} else if r.URL.Path[1:] == "oauth" {
 		// Custom oauth link generation logic.
+		var jsonBytes []byte
 
+		code := r.URL.Query().Get("code")
+		token, err := GetS71Token(code)
+
+		if err != nil {
+			LogMsg(fmt.Sprintf("Error: %v", err))
+			jsonBytes, _ = json.Marshal(webError{Error: "Token accquisition failed."})
+		} else {
+			jsonBytes, _ = json.Marshal(AuthResp{Token: token})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonBytes)
 	} else if r.URL.Path[1:] == "login" {
 		// Custom login logic
-
+		url := fmt.Sprintf("https://api.studio71.io/auth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s", GetConfigString("studio71_client_id"), url.QueryEscape(GetConfigString("studio71_redirect_uri")), r.URL.Query().Get("state"))
+		http.Redirect(w, r, url, http.StatusSeeOther)
 	} else {
 		data, err := Asset("static/gui/index.html")
 		if err != nil {

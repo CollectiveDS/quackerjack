@@ -17,6 +17,8 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
+# github.com/jteeuwen/go-bindata v3.0.7+incompatible
+## explicit
 # github.com/kljensen/snowball v0.6.0
 ## explicit
 github.com/kljensen/snowball
